@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SYNDICATE: ШЛЮЗ АКТИВАЦИИ</title>
+    <style>
+        /* ========================================= */
+        /* ОСНОВНЫЕ ПЕРЕМЕННЫЕ И СТИЛИ                */
+        /* ========================================= */
+        :root {
+            --bg-color: #050505;
+            --main-text: #eee;
+            --terminal-green: #00ff41;
+            --terminal-red: #ff003c;
+            --secondary-text: #666; /* Темно-серый */
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--main-text);
+            margin: 0;
+            padding-bottom: 30px; 
+            font-family: 'Times New Roman', serif;
+            overflow-x: hidden;
+            cursor: crosshair;
+        }
+
+        /* Оверлеи */
+        .noise-overlay, .scanlines { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 999; }
+        .noise-overlay { opacity: 0.12; background: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIj48ZmlsdGVyIGlkPSJub2lzZSI+PGZlVHVyYnVsZW5jZSB0eXBlPSJmcmFjdGFsTm9pc2UiIGJhc2VGcmVxdWVuY3k9IjAuNjUiIG51bTBPY3RhdmVlcz0iMyIgc3RpdGNoU1RpbGVzPSJzdGl0Y2giLz48L2ZpbHRlcj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWx0ZXI9InVybCgjbmlzZSkiIG9wYWNpdHk9IjEiLz48L2Z2Zy...'); }
+        .scanlines { background: linear-gradient(to bottom, rgba(255,255,255,0) 50%, rgba(0,0,0,0.3) 50%); background-size: 100% 4px; z-index: 998; }
+
+        /* ========================================= */
+        /* СЕКЦИИ МАНИФЕСТА И TYPEWRITER             */
+        /* ========================================= */
+        .manifesto-section {
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            text-align: center; padding: 40px 20px; opacity: 0; transition: opacity 1.5s ease-in-out;
+        }
+        .manifesto-section.visible { opacity: 1; }
+        .manifesto-section.hidden { display: none !important; }
+        #success-banner { height: 100vh; } 
+
+        h1 { font-size: 2.5rem; text-transform: uppercase; letter-spacing: 5px; margin: 0; font-weight: bold; line-height: 1.2; }
+        p { font-family: 'Courier New', monospace; font-size: 1rem; margin-top: 15px; color: var(--secondary-text); max-width: 700px; line-height: 1.6; }
+        .typewriter-text { visibility: hidden; min-height: 20px; }
+
+        /* Глитч для заголовка */
+        .glitch { position: relative; }
+        .glitch::before, .glitch::after { content: attr(data-text); position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); }
+        .glitch::before { left: 2px; text-shadow: -1px 0 var(--terminal-red); animation: glitch-anim-1 3s infinite linear alternate-reverse; }
+        .glitch::after { left: -2px; text-shadow: -1px 0 #00f; animation: glitch-anim-2 2s infinite linear alternate-reverse; }
+
+        @keyframes glitch-anim-1 { 0% { clip: rect(20px, 9999px, 10px, 0); } 100% { clip: rect(80px, 9999px, 100px, 0); } }
+        @keyframes glitch-anim-2 { 0% { clip: rect(10px, 9999px, 90px, 0); } 100% { clip: rect(40px, 9999px, 60px, 0); } }
+
+        /* ========================================= */
+        /* ВСТРОЕННЫЙ ТЕРМИНАЛ                       */
+        /* ========================================= */
+        #terminal-section {
+            background: #000; border-bottom: 3px solid var(--terminal-green); padding: 10px 20px;
+            font-family: 'Courier New', monospace; color: var(--terminal-green); font-size: 0.9rem;
+            min-height: 180px;
+            z-index: 1000; 
+            position: relative;
+        }
+        #terminal-output { max-height: 140px; overflow-y: scroll; margin-bottom: 5px; padding-bottom: 5px; }
+        .cmd-prompt { color: var(--terminal-green); }
+        .cmd-error { color: var(--terminal-red); }
+        .cmd-info { color: var(--secondary-text); } 
+        #terminal-input { flex-grow: 1; background: none; border: none; color: var(--terminal-green); font-family: 'Courier New', monospace; font-size: 0.9rem; outline: none; padding-left: 5px; caret-color: var(--terminal-green); }
+
+
+        /* ========================================= */
+        /* КНОПКИ ПОДСКАЗКИ                          */
+        /* ========================================= */
+        .hint-btn {
+            display: block; width: 280px; margin: 20px auto 0 auto; padding: 8px;
+            background: none; border: 1px solid var(--secondary-text); color: var(--secondary-text);
+            font-family: 'Courier New', monospace; font-size: 0.9rem; text-transform: uppercase;
+            cursor: pointer; transition: 0.2s;
+            height: auto; 
+        }
+        .hint-btn:hover {
+            border-color: var(--terminal-green); color: var(--terminal-green);
+            box-shadow: 0 0 5px rgba(0, 255, 65, 0.5);
+        }
+        
+        .hint-btn.used-hint {
+            background: var(--terminal-green);
+            color: var(--bg-color);
+            border-color: var(--terminal-green);
+            cursor: default;
+            box-shadow: none;
+            font-size: 0.8rem; 
+            white-space: normal;
+            line-height: 1.3;
+        }
+        .hint-btn.used-hint:hover { 
+            background: var(--terminal-green);
+            color: var(--bg-color);
+        }
+
+        /* ========================================= */
+        /* СКРЫТЫЙ КЛЮЧ 2 (АДАПТИВНЫЙ)               */
+        /* ========================================= */
+        #visual-key {
+            /* Дополнительное пространство для прокрутки, чтобы скрыть ключ */
+            height: 100vh; 
+            display: flex;
+            justify-content: center;
+            align-items: flex-end; 
+            padding-bottom: 50px;
+            font-size: 2rem;
+            text-align: center;
+            /* Цвет текста совпадает с фоном, делая его невидимым */
+            color: var(--bg-color); 
+            transition: color 0.1s;
+        }
+        
+        /* При выделении или наведении курсора (мышь/тач) инвертируем цвет текста */
+        #visual-key:hover, #visual-key::selection {
+            color: var(--terminal-red);
+            background: none;
+        }
+
+        /* ========================================= */
+        /* ФУТЕР                                     */
+        /* ========================================= */
+        footer {
+            position: fixed; bottom: 0; left: 0; width: 100%; background: rgba(0, 0, 0, 0.9);
+            color: var(--secondary-text); text-align: center; padding: 5px 0; font-size: 0.7rem;
+            font-family: 'Courier New', monospace; z-index: 1001; border-top: 1px dashed var(--secondary-text);
+        }
+
+        /* Мобильные адаптации */
+        @media (max-width: 768px) {
+            h1 { font-size: 2rem; letter-spacing: 3px; }
+            .hint-btn { width: 90%; font-size: 0.8rem; margin: 15px auto 0 auto; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="noise-overlay"></div>
+    <div class="scanlines"></div>
+
+    <section id="terminal-section">
+        <div id="terminal-output">
+            <div class="log-line cmd-info">>> SYNDICATE ECLIPSE v4.0.1 INITIATED...</div>
+            <div class="log-line cmd-info">>> Доступны команды: 'HELP', 'STATUS'.</div>
+            <div class="log-line cmd-info">>> [СТАТУС ШЛЮЗА: ОЖИДАНИЕ КЛЮЧЕЙ]</div>
+        </div>
+
+        <div id="terminal-input-line">
+            <span class="cmd-prompt">SYNDICATE ></span>
+            <input type="text" id="terminal-input" autofocus onkeydown="handleInput(event)">
+        </div>
+    </section>
+    
+    <section class="manifesto-section" id="manifesto-1">
+        <h1 class="glitch" data-text="ПРОСТРАНСТВО МЕЖДУ">ПРОСТРАНСТВО МЕЖДУ</h1>
+        <p class="typewriter-text">
+            добро пожаловать в пространство между мирами. вы успешно завершили инициализацию и подтвердили свое согласие. 
+        </p>
+        <p style="color:#ff003c; font-size:1.1rem; margin-top: 10px; font-weight: bold;">
+            КОДОВЫЙ ФРАГМЕНТ 1: <span style="border-bottom: 2px solid #ff003c;">WKH RIIHU LV UHDO.</span>
+        </p>
+        <button class="hint-btn" id="cipher-hint-btn" onclick="showCipherHint()">ПОДСКАЗКА (ШИФР)</button>
+    </section>
+    
+    <section class="manifesto-section" id="manifesto-2">
+        <h1 style="color: #ccc; font-size: 2.5rem;">ВЫ — СОУЧАСТНИК</h1>
+        <p class="typewriter-text">
+            вы прошли проверку. шлюз открыт. здесь, в канале, вы будете наблюдать за трансляцией. но если вы ищете активного участия и головоломок — смотрите внимательно.
+        </p>
+        <button class="hint-btn" id="code-hint-btn" onclick="showCodeHint()">ПОДСКАЗКА (КОД СТРАНИЦЫ)</button>
+    </section>
+
+    <section class="manifesto-section" id="manifesto-3">
+        <h1 style="color: transparent; -webkit-text-stroke: 1px #888; font-size: 2rem;">ФИНАЛЬНАЯ КОМАНДА</h1>
+        <p class="typewriter-text">
+            ваш путь начался. используйте команду SUBMIT для сохранения каждого ключа и ACTIVATE для завершения миссии.
+        </p>
+        <div style="font-size: 60px; margin-top: 30px;">✹</div>
+    </section>
+    
+    <section id="success-banner" class="manifesto-section" style="display: none;">
+        <h1 style="color: var(--terminal-green);"> ДОБРО ПОЖАЛОВАТЬ</h1>
+        <p>ввод принят. сигнатура совпала.</p>
+        <p style="font-size: 1.2rem; color: var(--main-text); font-family: 'Times New Roman', serif;">
+            БЛАГОДАРИМ ЗА РЕШЕНИЕ. ВАШЕ ВРЕМЯ И НАВЫКИ ЦЕННЫ ДЛЯ СИНДИКАТА.
+        </p>
+        <p style="font-size: 0.9rem; color: var(--secondary-text);">
+            до встречи.
+        </p>
+        <div style="font-size: 80px; margin-top: 30px; color: var(--terminal-green);">★</div>
+    </section>
+
+    <div id="visual-key">
+        7493
+    </div>
+    
+    <footer>
+        Syndicate Eclipse @ 2025
+    </footer>
+
+    <script>
+        // --- ПЕРЕМЕННЫЕ И ОСНОВНАЯ ЛОГИКА ---
+        const CORRECT_CIPHER = "THEOFFERISREAL"; 
+        const SOURCE_KEY = "7493"; 
+        
+        // *** ИСПРАВЛЕНО: Ключи найдены по умолчанию ***
+        let key1Found = false;
+        let key2Found = false;
+        // **********************************************
+        
+        let gatewayActivated = false;
+
+        const output = document.getElementById('terminal-output');
+        const input = document.getElementById('terminal-input');
+        const successBanner = document.getElementById('success-banner');
+        const allSections = document.querySelectorAll('.manifesto-section');
+        
+        // Вспомогательная функция для вывода в Терминал
+        function log(message, type = 'default') {
+            const line = document.createElement('div');
+            line.className = 'log-line';
+            if (type === 'error') {
+                line.innerHTML = `<span class="cmd-error">[ОШИБКА]</span> ${message}`;
+            } else if (type === 'info') {
+                line.innerHTML = `<span class="cmd-info">[СИСТЕМА]</span> ${message}`;
+            } else if (type === 'success') {
+                 line.innerHTML = `<span style="color: var(--terminal-green);">[АКТИВАЦИЯ]</span> ${message}`;
+            } else {
+                line.textContent = message;
+            }
+            output.appendChild(line);
+            output.scrollTop = output.scrollHeight; 
+        }
+
+        // Логика обработки команд (STATUS, ACTIVATE, HELP, SUBMIT)
+        function handleInput(event) {
+            if (event.key === 'Enter') {
+                const commandLine = input.value.trim();
+                if (!commandLine) return;
+
+                log(`> ${commandLine}`, 'default');
+                
+                processCommand(commandLine.toUpperCase());
+                input.value = ''; 
+            }
+        }
+
+        function processCommand(command) {
+            const parts = command.split(/\s+/);
+            const cmd = parts[0];
+
+            if (gatewayActivated) { return log("Шлюз активен. Ожидайте фазу 2.", 'info'); }
+
+            switch(cmd) {
+                case 'HELP':
+                    log("Доступные команды:", 'info');
+                    log("  STATUS - Проверить состояние ключей.", 'info');
+                    log("  SUBMIT [КЛЮЧ] - Сдать один из ключей (шифр или код).", 'info');
+                    log("  ACTIVATE - Запустить активацию после сдачи обоих ключей.", 'info');
+                    break;
+                
+                case 'STATUS':
+                    log("--- СТАТУС АКТИВАЦИИ КЛЮЧЕЙ ---", 'info');
+                    log(`Ключ 1 (Шифр: ${CORRECT_CIPHER}): ${key1Found ? 'ПРИНЯТ' : 'НЕ ПРИНЯТ'}`, key1Found ? 'success' : 'error');
+                    log(`Ключ 2 (Код: ${SOURCE_KEY}): ${key2Found ? 'ПРИНЯТ' : 'НЕ ПРИНЯТ'}`, key2Found ? 'success' : 'error');
+                    break;
+
+                case 'SUBMIT':
+                    if (parts.length !== 2) { return log("Синтаксическая ошибка: SUBMIT [КЛЮЧ].", 'error'); }
+                    const submittedKey = parts[1];
+                    
+                    if (submittedKey === CORRECT_CIPHER && !key1Found) {
+                        key1Found = true;
+                        log(`КЛЮЧ 1 ('${submittedKey}') ВЕРЕН. Сигнатура принята.`, 'success');
+                    } else if (submittedKey === SOURCE_KEY && !key2Found) {
+                        key2Found = true;
+                        log(`КЛЮЧ 2 ('${submittedKey}') ВЕРЕН. Аутентификация пройдена.`, 'success');
+                    } else if (submittedKey === CORRECT_CIPHER && key1Found) {
+                        log("КЛЮЧ 1 уже принят.", 'info');
+                    } else if (submittedKey === SOURCE_KEY && key2Found) {
+                        log("КЛЮЧ 2 уже принят.", 'info');
+                    } else {
+                        log(`КЛЮЧ ('${submittedKey}') ОТКЛОНЕН.`, 'error');
+                    }
+                    break;
+
+                case 'ACTIVATE':
+                    if (key1Found && key2Found) {
+                        gatewayActivated = true;
+                        log("ШЛЮЗ АКТИВИРОВАН. СИНДИКАТ ПРИНИМАЕТ ВАС.", 'success');
+                        
+                        // Скрываем все секции, кроме терминала и финальной секции
+                        allSections.forEach(section => {
+                            if (section.id !== 'terminal-section' && section.id !== 'success-banner') {
+                                section.classList.add('hidden');
+                            }
+                        });
+                        
+                        // Показываем финальный баннер на весь экран и делаем его видимым
+                        successBanner.style.display = 'flex';
+                        successBanner.classList.add('visible'); // Запускает CSS-переход opacity
+                        
+                        // Прокрутка в самый верх
+                        window.scrollTo({ top: 0, behavior: 'smooth' }); 
+
+                    } else {
+                        log("ТРЕБОВАНИЕ: Для активации необходимы оба ключа. Используйте команду STATUS.", 'error');
+                    }
+                    break;
+
+                default:
+                    log(`Неизвестная команда: ${cmd}. Введите HELP.`, 'error');
+            }
+        }
+        
+        // --- ЛОГИКА ПОДСКАЗОК НА КНОПКАХ ---
+        function showCipherHint() {
+            const btn = document.getElementById('cipher-hint-btn');
+            if (btn.classList.contains('used-hint')) return;
+
+            btn.innerHTML = 'ШИФР: фрагмент зашифрован с помощью сдвига на 3 символа НАЗАД. используйте латинский алфавит (26 букв), так как сам код написан латинскими буквами. ключ вводится одним словом, без пробелов.';
+            btn.classList.add('used-hint');
+            btn.disabled = true;
+        }
+
+        function showCodeHint() {
+            const btn = document.getElementById('code-hint-btn');
+            if (btn.classList.contains('used-hint')) return;
+
+            // Подсказка для Ключа 2, видимого при выделении/прокрутке
+            btn.innerHTML = 'КОД: ищите четыре цифры, которые сливаются с фоном в самом низу страницы. попробуйте выделить текст или прокрутить страницу.';
+            btn.classList.add('used-hint');
+            btn.disabled = true;
+        }
+
+        window.showCipherHint = showCipherHint;
+        window.showCodeHint = showCodeHint;
+        
+        // --- ЛОГИКА ПЕЧАТНОГО ЭФФЕКТА (TYPEWRITER) ---
+        let typedSections = new Set();
+
+        function typeWriter(element, text, speed) {
+            element.textContent = '';
+            element.style.visibility = 'visible';
+            let i = 0;
+            function type() {
+                if (i < text.length) {
+                    element.textContent += text.charAt(i);
+                    i++;
+                    setTimeout(type, speed);
+                }
+            }
+            type();
+        }
+
+        const sectionsToObserve = document.querySelectorAll('.manifesto-section:not(#success-banner)');
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting && !typedSections.has(entry.target.id)) {
+                    entry.target.classList.add('visible');
+                    const typeElements = entry.target.querySelectorAll('.typewriter-text');
+                    typeElements.forEach(p => {
+                        const originalText = p.getAttribute('data-text');
+                        if (originalText) {
+                            typeWriter(p, originalText, 25); 
+                        }
+                    });
+                    typedSections.add(entry.target.id); 
+                }
+            });
+        }, { threshold: 0.1 }); 
+        
+        sectionsToObserve.forEach(section => {
+            const typeElements = section.querySelectorAll('.typewriter-text');
+            typeElements.forEach(p => {
+                p.setAttribute('data-text', p.textContent.trim());
+                p.textContent = ''; 
+            });
+            observer.observe(section);
+        });
+
+        // Автофокус при клике
+        document.getElementById('terminal-section').addEventListener('click', () => { input.focus(); });
+    </script>
+
+</body>
+</html>
