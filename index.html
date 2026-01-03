@@ -28,7 +28,7 @@
 
         /* Оверлеи */
         .noise-overlay, .scanlines { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 999; }
-        .noise-overlay { opacity: 0.12; background: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIj48ZmlsdGVyIGlkPSJub2lzZSI+PGZlVHVyYnVsZW5jZSB0eXBlPSJmcmFjdGFsTm9pc2UiIGJhc2VGcmVxdWVuY3k9IjAuNjUiIG51bTBPY3RhdmVlcz0iMyIgc3RpdGNoU1RpbGVzPSJzdGl0Y2giLz48L2ZpbHRlcj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWx0ZXI9InVybCgjbmlzZSkiIG9wYWNpdHk9IjEiLz48L2Z2Zy...'); }
+        .noise-overlay { opacity: 0.12; background: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIj48ZmlsdGVyIGlkPSJub2lzZSI+PGZlVHVyYnVsZW5jZSB0eXBlPSJmcmFjdGFsTm9pc2UiIGJhc2VGcmVxdWVuY3k9IjAuNjUiIG51bTBPY3RhdmVlcz0iMyIgc3RpdGNoU1RpbGVzPSJzdGl0Y2giLz48L2ZpbHRlcj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWx0ZXI9InVybCgjbmlzZSkiIG9wYWNpdHk9IjEiLz48L3N2Zz4='); }
         .scanlines { background: linear-gradient(to bottom, rgba(255,255,255,0) 50%, rgba(0,0,0,0.3) 50%); background-size: 100% 4px; z-index: 998; }
 
         /* ========================================= */
@@ -269,8 +269,9 @@
                 
                 case 'STATUS':
                     log("--- СТАТУС АКТИВАЦИИ КЛЮЧЕЙ ---", 'info');
-                    log(`Ключ 1 (Шифр: ${CORRECT_CIPHER}): ${key1Found ? 'ПРИНЯТ' : 'НЕ ПРИНЯТ'}`, key1Found ? 'success' : 'error');
-                    log(`Ключ 2 (Код: ${SOURCE_KEY}): ${key2Found ? 'ПРИНЯТ' : 'НЕ ПРИНЯТ'}`, key2Found ? 'success' : 'error');
+                    log(`Ключ 1 (Шифр): ${key1Found ? 'ПРИНЯТ' : 'НЕ ПРИНЯТ'}`, key1Found ? 'success' : 'error');
+                    log(`Ключ 2 (Код): ${key2Found ? 'ПРИНЯТ' : 'НЕ ПРИНЯТ'}`, key2Found ? 'success' : 'error');
+                    log("Используйте команду SUBMIT [ключ] для активации ключей", 'info');
                     break;
 
                 case 'SUBMIT':
@@ -279,10 +280,10 @@
                     
                     if (submittedKey === CORRECT_CIPHER && !key1Found) {
                         key1Found = true;
-                        log(`КЛЮЧ 1 ('${submittedKey}') ВЕРЕН. Сигнатура принята.`, 'success');
+                        log(`КЛЮЧ 1 ВЕРЕН. Сигнатура принята.`, 'success');
                     } else if (submittedKey === SOURCE_KEY && !key2Found) {
                         key2Found = true;
-                        log(`КЛЮЧ 2 ('${submittedKey}') ВЕРЕН. Аутентификация пройдена.`, 'success');
+                        log(`КЛЮЧ 2 ВЕРЕН. Аутентификация пройдена.`, 'success');
                     } else if (submittedKey === CORRECT_CIPHER && key1Found) {
                         log("КЛЮЧ 1 уже принят.", 'info');
                     } else if (submittedKey === SOURCE_KEY && key2Found) {
